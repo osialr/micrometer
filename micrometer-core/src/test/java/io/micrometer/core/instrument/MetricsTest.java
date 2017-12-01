@@ -40,6 +40,6 @@ class MetricsTest {
         counter.increment();
 
         clock(simple).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(Metrics.globalRegistry.find("counter").value(Statistic.Count, 1.0).counter()).isPresent();
+        assertThat(Metrics.globalRegistry.find("counter").counter().map(Counter::count)).hasValue(1.0);
     }
 }

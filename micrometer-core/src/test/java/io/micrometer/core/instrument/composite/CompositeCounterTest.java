@@ -16,8 +16,8 @@
 package io.micrometer.core.instrument.composite;
 
 import io.micrometer.core.Issue;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MockClock;
-import io.micrometer.core.instrument.Statistic;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -36,6 +36,6 @@ class CompositeCounterTest {
         registry.counter("counter").increment(2.0);
 
         clock(simple).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(simple.find("counter").value(Statistic.Count, 2.0).counter()).isPresent();
+        assertThat(simple.find("counter").counter().map(Counter::count)).hasValue(2.0);
     }
 }

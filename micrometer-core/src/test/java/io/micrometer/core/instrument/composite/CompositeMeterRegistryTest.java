@@ -15,7 +15,11 @@
  */
 package io.micrometer.core.instrument.composite;
 
-import io.micrometer.core.instrument.*;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.Statistic;
 import io.micrometer.core.instrument.config.NamingConvention;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +29,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.micrometer.core.instrument.Statistic.Count;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -99,7 +102,7 @@ class CompositeMeterRegistryTest {
         assertThat(compositeCounter.count()).isEqualTo(1);
 
         // only the increment AFTER simple is added to the composite is counted to it
-        assertThat(simple.find("counter").value(Count, 1.0).counter()).isPresent();
+        assertThat(simple.find("counter").counter().map(Counter::count)).hasValue(1.0);
     }
 
     @DisplayName("metrics that are created after a registry is added to that registry")
@@ -108,7 +111,7 @@ class CompositeMeterRegistryTest {
         composite.add(simple);
         composite.counter("counter").increment();
 
-        assertThat(simple.find("counter").value(Count, 1.0).counter()).isPresent();
+        assertThat(simple.find("counter").counter().map(Counter::count)).hasValue(1.0);
     }
 
     @DisplayName("metrics follow the naming convention of each registry in the composite")
@@ -119,7 +122,7 @@ class CompositeMeterRegistryTest {
         composite.add(simple);
         composite.counter("my.counter").increment();
 
-        assertThat(simple.find("my.counter").value(Count, 1.0).counter()).isPresent();
+        assertThat(simple.find("my.counter").counter().map(Counter::count)).hasValue(1.0);
     }
 
     @DisplayName("common tags added to the composite affect meters registered with registries in the composite")

@@ -17,7 +17,7 @@ package io.micrometer.core.instrument.binder.system;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.MockClock;
-import io.micrometer.core.instrument.Statistic;
+import io.micrometer.core.instrument.TimeGauge;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class UptimeMetricsTest {
         new UptimeMetrics(runtimeMXBean, emptyList()).bindTo(registry);
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("process.uptime").value(Statistic.Value, 1.337).meter()).isPresent();
-        assertThat(registry.find("process.start.time").value(Statistic.Value, 4.711).meter()).isPresent();
+        assertThat(registry.find("process.uptime").timeGauge().map(TimeGauge::value)).hasValue(1.337);
+        assertThat(registry.find("process.start.time").timeGauge().map(TimeGauge::value)).hasValue(4.711);
     }
 }
