@@ -20,6 +20,7 @@ import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.MockClock;
 import io.micrometer.core.instrument.Statistic;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.spring.autoconfigure.web.servlet.WebMvcMetricsConfiguration;
@@ -81,7 +82,7 @@ public class WebMvcMetricsIntegrationTest {
 
         clock.add(SimpleConfig.DEFAULT_STEP);
         assertThat(this.registry.find("http.server.requests")
-            .tags("exception", "Exception1").value(Statistic.Count, 1.0).timer())
+            .tags("exception", "Exception1").timer().map(Timer::count)).hasValue(1L)
             .isPresent();
     }
 
@@ -92,8 +93,7 @@ public class WebMvcMetricsIntegrationTest {
 
         clock.add(SimpleConfig.DEFAULT_STEP);
         assertThat(this.registry.find("http.server.requests")
-            .tags("exception", "Exception2").value(Statistic.Count, 1.0).timer())
-            .isPresent();
+            .tags("exception", "Exception2").timer().map(Timer::count)).hasValue(1L);
     }
 
     @Configuration
