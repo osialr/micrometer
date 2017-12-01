@@ -16,10 +16,7 @@
 package io.micrometer.spring.web.servlet;
 
 import io.micrometer.core.annotation.Timed;
-import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Statistic;
-import io.micrometer.core.instrument.Timer;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import org.junit.Before;
@@ -56,6 +53,7 @@ import java.util.concurrent.CountDownLatch;
 import static io.micrometer.spring.web.servlet.MetricsFilterTest.RedirectAndNotFoundFilter.TEST_MISBEHAVE_HEADER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -94,18 +92,18 @@ public class MetricsFilterTest {
     public void timedMethod() throws Exception {
         this.mvc.perform(get("/api/c1/10")).andExpect(status().isOk());
 
-        assertThat(this.registry.find("http.server.requests")
+        assertThat(this.registry.mustFind("http.server.requests")
             .tags("status", "200", "uri", "/api/c1/{id}", "public", "true")
-            .timer().map(Timer::count)).hasValue(1L);
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
     public void subclassedTimedMethod() throws Exception {
         this.mvc.perform(get("/api/c1/metaTimed/10")).andExpect(status().isOk());
 
-        assertThat(this.registry.find("http.server.requests")
+        assertThat(this.registry.mustFind("http.server.requests")
             .tags("status", "200", "uri", "/api/c1/metaTimed/{id}")
-            .timer().map(Timer::count)).hasValue(1L);
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
@@ -113,23 +111,24 @@ public class MetricsFilterTest {
         this.mvc.perform(get("/api/c1/untimed/10")).andExpect(status().isOk());
 
         assertThat(this.registry.find("http.server.requests")
-            .tags("uri", "/api/c1/untimed/10").timer()).isEmpty();
+            .tags("uri", "/api/c1/untimed/10").timer())
+            .isNull();
     }
 
     @Test
     public void timedControllerClass() throws Exception {
         this.mvc.perform(get("/api/c2/10")).andExpect(status().isOk());
 
-        assertThat(this.registry.find("http.server.requests").tags("status", "200")
-            .timer().map(Timer::count)).hasValue(1L);
+        assertThat(this.registry.mustFind("http.server.requests").tags("status", "200")
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
     public void badClientRequest() throws Exception {
         this.mvc.perform(get("/api/c1/oops")).andExpect(status().is4xxClientError());
 
-        assertThat(this.registry.find("http.server.requests").tags("status", "400")
-            .timer().map(Timer::count)).hasValue(1L);
+        assertThat(this.registry.mustFind("http.server.requests").tags("status", "400")
+            .timer().count()).isEqualTo(1L);
     }
 
 
@@ -138,9 +137,8 @@ public class MetricsFilterTest {
         this.mvc.perform(get("/api/redirect")
             .header(TEST_MISBEHAVE_HEADER, "302")).andExpect(status().is3xxRedirection());
 
-        assertThat(this.registry.find("http.server.requests")
-            .tags("uri", "REDIRECTION")
-            .tags("status", "302").timer()).isPresent();
+        this.registry.mustFind("http.server.requests")
+            .tags("uri", "REDIRECTION", "status", "302").timer();
     }
 
     @Test
@@ -148,9 +146,8 @@ public class MetricsFilterTest {
         this.mvc.perform(get("/api/not/found")
             .header(TEST_MISBEHAVE_HEADER, "404")).andExpect(status().is4xxClientError());
 
-        assertThat(this.registry.find("http.server.requests")
-            .tags("uri", "NOT_FOUND")
-            .tags("status", "404").timer()).isPresent();
+        this.registry.mustFind("http.server.requests")
+            .tags("uri", "NOT_FOUND", "status", "404").timer();
     }
 
     @Test
@@ -159,9 +156,9 @@ public class MetricsFilterTest {
             .andExpect(status().isOk()))
             .hasRootCauseInstanceOf(RuntimeException.class);
 
-        assertThat(this.registry.find("http.server.requests")
+        assertThat(this.registry.mustFind("http.server.requests")
             .tags("exception", "RuntimeException")
-            .timer().map(Timer::count)).hasValue(1L);
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
@@ -170,38 +167,39 @@ public class MetricsFilterTest {
             .andExpect(request().asyncStarted())
             .andReturn();
 
-        // the request is not prematurely recorded as complete
         assertThat(this.registry.find("http.server.requests")
-            .tags("uri", "/api/c1/async").timer()).isNotPresent();
+            .tags("uri", "/api/c1/async").timer())
+            .describedAs("Request isn't prematurely recorded as complete")
+            .isNull();
 
         // while the mapping is running, it contributes to the activeTasks count
-        assertThat(this.registry.find("my.long.request").tags("region", "test")
-            .longTaskTimer().map(LongTaskTimer::activeTasks)).hasValue(1);
+        assertThat(this.registry.mustFind("my.long.request").tags("region", "test")
+            .longTaskTimer().activeTasks()).isEqualTo(1);
 
         // once the mapping completes, we can gather information about status, etc.
         asyncLatch.countDown();
 
         this.mvc.perform(asyncDispatch(result)).andExpect(status().isOk());
 
-        assertThat(this.registry.find("http.server.requests").tags("status", "200")
-            .timer().map(Timer::count)).hasValue(1L);
+        assertThat(this.registry.mustFind("http.server.requests").tags("status", "200")
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
     public void endpointThrowsError() throws Exception {
         this.mvc.perform(get("/api/c1/error/10")).andExpect(status().is4xxClientError());
 
-        assertThat(this.registry.find("http.server.requests").tags("status", "422")
-            .timer().map(Timer::count)).hasValue(1L);
+        assertThat(this.registry.mustFind("http.server.requests").tags("status", "422")
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
     public void regexBasedRequestMapping() throws Exception {
         this.mvc.perform(get("/api/c1/regex/.abc")).andExpect(status().isOk());
 
-        assertThat(this.registry.find("http.server.requests")
+        assertThat(this.registry.mustFind("http.server.requests")
             .tags("uri", "/api/c1/regex/{id:\\.[a-z]+}")
-            .timer().map(Timer::count)).hasValue(1L);
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test

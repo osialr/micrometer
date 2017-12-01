@@ -30,8 +30,7 @@ class DropwizardMeterRegistryTest {
         MeterRegistry registry = new DropwizardMeterRegistry(HierarchicalNameMapper.DEFAULT, Clock.SYSTEM);
         registry.gauge("gauge", emptyList(), null, obj -> 1.0);
 
-        assertThat(registry.find("gauge").gauge())
-            .hasValueSatisfying(g -> assertThat(g.value()).isEqualTo(Double.NaN));
+        assertThat(registry.mustFind("gauge").gauge().value()).isEqualTo(Double.NaN);
     }
 
     @Test

@@ -50,10 +50,9 @@ class OkHttpMetricsEventListenerTest {
         client.newCall(request).execute().close();
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("okhttp.requests")
-            .tags("uri", "/helloworld.txt")
-            .tags("status", "200")
-            .timer().map(Timer::count)).isPresent().hasValue(1L);
+        assertThat(registry.mustFind("okhttp.requests")
+            .tags("uri", "/helloworld.txt", "status", "200")
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
@@ -69,9 +68,9 @@ class OkHttpMetricsEventListenerTest {
         }
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("okhttp.requests")
+        assertThat(registry.mustFind("okhttp.requests")
             .tags("uri", "NOT_FOUND")
-            .timer().map(Timer::count)).isPresent().hasValue(1L);
+            .timer().count()).isEqualTo(1L);
     }
 
     @Test
@@ -95,9 +94,8 @@ class OkHttpMetricsEventListenerTest {
         }
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("okhttp.requests")
-            .tags("uri", "UNKNOWN")
-            .tags("status", "IO_ERROR")
-            .timer().map(Timer::count)).isPresent().hasValue(1L);
+        assertThat(registry.mustFind("okhttp.requests")
+            .tags("uri", "UNKNOWN", "status", "IO_ERROR")
+            .timer().count()).isEqualTo(1L);
     }
 }

@@ -41,7 +41,7 @@ class LogbackMetricsTest {
 
     @Test
     void logbackLevelMetrics() {
-        assertThat(registry.find("logback.events").counter().map(Counter::count)).hasValue(0.0);
+        assertThat(registry.mustFind("logback.events").counter().count()).isEqualTo(0.0);
 
         logger.setLevel(Level.INFO);
 
@@ -50,8 +50,8 @@ class LogbackMetricsTest {
         logger.debug("debug"); // shouldn't record a metric
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("logback.events").tags("level", "warn").counter().map(Counter::count)).hasValue(1.0);
-        assertThat(registry.find("logback.events").tags("level", "debug").counter().map(Counter::count)).hasValue(0.0);
+        assertThat(registry.mustFind("logback.events").tags("level", "warn").counter().count()).isEqualTo(1.0);
+        assertThat(registry.mustFind("logback.events").tags("level", "debug").counter().count()).isEqualTo(0.0);
     }
 
     @Issue("#183")
@@ -60,6 +60,6 @@ class LogbackMetricsTest {
         logger.isErrorEnabled();
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("logback.events").tags("level", "error").counter().map(Counter::count)).hasValue(0.0);
+        assertThat(registry.mustFind("logback.events").tags("level", "error").counter().count()).isEqualTo(0.0);
     }
 }

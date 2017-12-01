@@ -58,9 +58,9 @@ public class SpringSecurityTest {
         mvc.perform(get("/api/secured")).andExpect(status().isOk());
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("http.server.requests")
+        registry.mustFind("http.server.requests")
             .tags("status", "200")
-            .timer()).isPresent();
+            .timer();
     }
 
     @Test
@@ -68,9 +68,9 @@ public class SpringSecurityTest {
         mvc.perform(get("/api/secured")).andExpect(status().isUnauthorized());
 
         clock(registry).add(SimpleConfig.DEFAULT_STEP);
-        assertThat(registry.find("http.server.requests")
+        registry.mustFind("http.server.requests")
             .tags("status", "401")
-            .timer()).isPresent();
+            .timer();
     }
 
     @SpringBootApplication
